@@ -1,0 +1,77 @@
+version: '3.7'
+services:
+  nginx:
+    image: 'nginx:1.19.3'
+    container_name: 'nginx'
+    networks:
+    - 'frontend'
+    - 'backend'
+    depends_on:
+    - 'keycloak'
+    ports:
+    - '80:80'
+    volumes:
+    - './etc/nginx/nginx.conf:/etc/nginx/nginx.conf:ro'
+  app:
+    build:
+      context: 'app'
+    container_name: 'app'
+    networks:
+    - 'backend'
+    expose:
+    - '8000'
+    environment:
+    - 'ISSUER_URL=http://localhost/keycloak/realms/app'
+    - 'AUTH_URL=http://localhost/keycloak/realms/app/protocol/openid-connect/auth?client_id=app&response_type=code&redirect_uri=http://localhost/auth/callback'
+    - 'TOKEN_URL=http://localhost/keycloak/realms/app/protocol/openid-connect/token'
+    - 'USERINFO_URL=http://localhost/keycloak/realms/app/protocol/openid-connect/userinfo'
+    - 'JWKS_URL=http://localhost/keycloak/realms/app/protocol/openid-connect/certs'
+    entrypoint: ['python3']
+    command: ['app.py']
+  keycloak:
+    image: 'jboss/keycloak:11.0.2'
+    container_name: 'keycloak'
+    restart: 'always'
+    environment:
+    - 'KEYCLOAK_USER=admin'
+    - 'KEYCLOAK_PASSWORD=${KEYCLOAK_PASSWORD}'
+    - 'DB_VENDOR=postgres'
+    - 'DB_ADDR=postgres'
+    - 'DB_PORT=5432'
+    - 'DB_DATABASE=keycloak'
+    - 'DB_USER=admin'
+    - 'DB_PASSWORD=${POSTGRES_PASSWORD}'
+    - 'PROXY_ADDRESS_FORWARDING=true'
+    - 'KEYCLOAK_IMPORT=/realm-export.json'
+    depends_on:
+    - 'postgres'
+    networks:
+    - 'backend'
+    expose:
+    - '8080'
+    - '9990'
+    command:
+    - '-b=0.0.0.0'
+    - '-Djboss.http.port=8080'
+    volumes:
+    - './opt/jboss/startup-scripts:/opt/jboss/startup-scripts'
+    - './realm-export.json:/realm-export.json'
+  postgres:
+    image: 'postgres:13.0-alpine'
+    container_name: 'postgres'
+    restart: 'always'
+    environment:
+    - 'POSTGRES_DB=keycloak'
+    - 'POSTGRES_USER=admin'
+    - 'POSTGRES_PASSWORD=${POSTGRES_PASSWORD}'
+    networks:
+    - 'backend'
+    expose:
+    - '5432'
+    volumes:
+    - 'postgres:/var/lib/postgresql/data'
+networks:
+  frontend:
+  backend:
+volumes:
+  postgres:
