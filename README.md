@@ -1,5 +1,7 @@
 # DevOps assignment
 
+In order to apply, please duplicate the repository as descrbied here: https://docs.github.com/en/repositories/creating-and-managing-repositories/duplicating-a-repository and send us a note at hr@yields.io
+
 Minimal environment with `keycloak` and a custom `python` app behind
 `nginx`, in `docker`, orchestrated with `docker-compose`.
 
